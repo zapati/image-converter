@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <link rel="shortcut icon" href="webm-48px.png">
+  <title>WebP image check</title>
+</head>
+<body class="homepage" id="None">
+<div>
+  <label for="selBackground">Background : </label>
+  <select name="selBackground" id="selBackground"></select>
+  &nbsp;&nbsp;&nbsp;
+  <label for="selImage">Image : </label>
+  <select name="selImage" id="selImage"></select>
+  &nbsp;&nbsp;&nbsp;
+  <div id = "imagePos">Position</div>
+</div>
+
+<div style="position: relative;">
+ <div id="background" style="position: absolute; left: 0; top: 0; z-index: 0;" draggable="false">
+   <img id="backgroundImage" draggable="false">
+ </div>
+ <div id="sprite" style="position: absolute; z-index: 1;" draggable="false">
+   <img id="spriteImage" draggable="false">
+ </div>
+</div>
+
+<script>
+  // ------------ Image ------------
+  const background = document.getElementById('background');  
+  const sprite = document.getElementById('sprite');
+  const spritePos = document.getElementById('imagePos');
+  
+  function setBackground(file) {
+    console.log('Set background ' + file);
+    const image = document.getElementById('backgroundImage');
+    image.src = file;
+    image.onload = function(){
+      background.width = image.width;
+      background.height = image.height;
+    }
+  }
+  
+  function setSprite(file) {
+    console.log('Set sprite ' + file);
+    const image = document.getElementById('spriteImage');
+    image.src = file;
+    image.onload = function(){
+      sprite.width = image.width;
+      sprite.height = image.height;
+    }
+  }
+  
+  var spriteX = 0;
+  var spriteY = 0;
+  function setSpritePos(x, y) {
+      sprite.style.left = x+'px';
+      sprite.style.top = y+'px';
+      spriteX = x;
+      spriteY = y;
+      spritePos.innerHTML = 'Position X:'+x+' Y:'+y;
+  }
+
+  var offsetX;
+  var offsetY;
+  var move = false;
+  sprite.addEventListener('mousedown', (event) => {
+    const leftButton = 0;
+    const rightButton = 2;
+    if (event.button == leftButton) {
+      offsetX = event.offsetX;
+      offsetY = event.offsetY;
+      move = true;
+    }
+  });
+  sprite.addEventListener('mousemove', (event) => {
+    if (move) {
+      const diffX = event.offsetX - offsetX;
+      const diffY = event.offsetY - offsetY;
+      if (diffX != 0 || diffY != 0) {
+        setSpritePos(spriteX + diffX, spriteY + diffY);
+      }
+    }
+  });
+  sprite.addEventListener('mouseup', (event) => {move = false;});
+  sprite.addEventListener('mouseout', (event) => {move = false;});
+
+
+  // ------------ Selection ------------
+  const dirBackground = 'background';
+  const dirImage = 'image';
+  const selBackground = document.getElementById('selBackground');
+  const selImage = document.getElementById('selImage');
+
+  selBackground.addEventListener('change', () => {
+    var value = selBackground.options[selBackground.selectedIndex].value;
+    setBackground(dirBackground + '/' + value);
+  });
+  selImage.addEventListener('change', () => {
+    var value = selImage.options[selImage.selectedIndex].value;
+    setSprite(dirImage + '/' + value);
+    setSpritePos(spriteX, spriteY);
+  });
+
+  function addOptions(sel, text) {
+    try {
+      const array = JSON.parse(text);
+      array.forEach(function(name) {
+          var opt = document.createElement('option');
+          opt.value = name;
+          opt.innerHTML = name;
+          sel.appendChild(opt);
+      });
+      sel.dispatchEvent(new Event("change"));
+    } catch (e) {
+      console.log("Cannot parse : " + text);
+    }
+  }
+  
+  function sendRequest(url, sel) {
+    var httpRequest = new XMLHttpRequest();
+    httpRequest.onreadystatechange = function(){
+      if (httpRequest.readyState === XMLHttpRequest.DONE) {
+        if (httpRequest.status === 200) {
+          addOptions(sel, httpRequest.responseText);
+        } else {
+          console.log('Error ' + httpRequest.status + '(' + url + ')');
+        }
+      }
+    };
+    httpRequest.open('GET', url);
+    httpRequest.send();
+  }
+  sendRequest(dirBackground, selBackground);
+  sendRequest(dirImage, selImage);
+</script>
+
+</body>
+</html>
