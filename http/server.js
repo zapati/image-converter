@@ -50,7 +50,7 @@ function scanFiles(dir, subdir) {
         subpath = p.name;
       }
       if (p.isDirectory()) {
-        console.log("====" + subpath);
+        // console.log(subpath);
         files.push(...scanFiles(dir, subpath));
       } else {
         files.push(subpath.replace(/\\/gi, "/"));
@@ -74,7 +74,7 @@ function sendFile(res, subdir, file) {
   const ext = path.extname(file).substring(1);
   const type = getContentType(ext);
   const filepath = path.join(__dirname, subdir, file);
-  console.log(filepath);
+  // console.log(filepath);
   var stat;
   try {
     // console.log("Send : " + filepath);
@@ -99,10 +99,10 @@ function sendFile(res, subdir, file) {
 function msgDispatch(req, res) {
   const addr = url.parse(req.url, true);
   const target = path.normalize(decodeURI(addr.path));
-  const dirname = path.dirname(target);
+  var dirname = path.dirname(target);
   var filename = path.basename(target);
   if (filename == "") {
-    filename = "index.html";
+    filename = "imagetest.html";
   }
   // console.log("Path : [" + dirname + "][" + filename + "]");
   sendFile(res, dirname, filename);

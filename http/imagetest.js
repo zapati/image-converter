@@ -116,9 +116,11 @@ resetImages.addEventListener("click", () => {
 window.addEventListener("keydown", (e) => {
   switch (e.key) {
     case "ArrowUp":
+      e.preventDefault();
       selectImage(selImage.selectedIndex - 1);
       break;
     case "ArrowDown":
+      e.preventDefault();
       selectImage(selImage.selectedIndex + 1);
       break;
     default:

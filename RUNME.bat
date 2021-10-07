@@ -1,1 +1,1 @@
-node.exe server.js
+win\node.exe http\server.js
