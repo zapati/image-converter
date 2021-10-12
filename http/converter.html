@@ -8,14 +8,14 @@
       .halfbox {
         width: 48.5%;
         height: 100%;
-        min-height:  200px;
+        min-height: 200px;
         border-radius: 5px;
-        border: 2px solid #73AD21;
+        border: 2px solid #73ad21;
         padding: 0.1% 0.3% 0.1% 0.3%;
       }
       .guidebox {
         width: 1%;
-        height:  200px;
+        height: 200px;
         align: center;
         text-align: center;
         display: table-cell;
@@ -35,18 +35,14 @@
         <option value="PNG">To clean PNG (fast)</option>
         <option value="ZOP">To zopfli PNG (small)</option>
       </select>
-      <div id="typeOption"><div>
+      <div id="typeOption"></div>
     </div>
-    <hr>
-    <div id="inBox" class="halfbox" style="float: left;">
-      <div id="dropHere" class="guidebox">
-        Drop files or folder here
-      </div>
+    <hr />
+    <div id="inBox" class="halfbox" style="float: left">
+      <div id="dropHere" class="guidebox">Drop files or folder here</div>
     </div>
-    <div id="outBox" class="halfbox" style="float: right;">
-      <div id="resultHere" class="guidebox" style="color: #C0C0C0;">
-        Result
-      </div>
+    <div id="outBox" class="halfbox" style="float: right">
+      <div id="resultHere" class="guidebox" style="color: #c0c0c0">Result</div>
     </div>
     <script src="converter.js"></script>
   </body>

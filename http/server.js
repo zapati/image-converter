@@ -5,6 +5,21 @@ const os = require("os");
 const path = require("path");
 const url = require("url");
 const fs = require("fs");
+const child_process = require("child_process");
+
+var osdir = "";
+const platform = process.platform;
+if (platform == "win32") {
+  osdir = path.join(__dirname, "../win");
+} else if (platform == "darwin") {
+  osdir = path.join(__dirname, "../mac");
+} else if (platform == "linux") {
+  osdir = path.join(__dirname, "../linux");
+} else {
+  console.error("Unknown OS? " + platform);
+}
+const tempdir = "temp";
+const cwebpdir = "cwebp";
 
 function getContentType(ext) {
   const table = {
@@ -96,16 +111,89 @@ function sendFile(res, subdir, file) {
   readStream.pipe(res);
 }
 
+function receiveFile(res, dir, file, req, done_cb) {
+  const recvdir = path.join(__dirname, tempdir, dir);
+  if (!fs.existsSync(recvdir)) {
+    console.log("mkdir : " + recvdir);
+    fs.mkdirSync(recvdir, { recursive: true });
+  }
+
+  console.log("ReceiveFile :[" + recvdir + "][" + file + "]");
+  const recvfile = path.join(recvdir, file);
+  const writer = fs.createWriteStream(recvfile, { flags: "a" });
+  req
+    .pipe(writer)
+    .on("finish", () => {
+      console.log("WriteFile Done :[" + recvfile + "]");
+      if (done_cb) {
+        done_cb(res, dir, file, recvfile); // convertFileWebP
+      }
+    })
+    .on("error", (e) => {
+      console.log("WriteFile Error :" + e);
+      res.writeHead(500); // internal server error
+      res.end();
+    });
+}
+
+function deleteFile(res, dir, file) {
+  console.log("Delete :[" + dir + "][" + file + "]");
+  // TODO :
+}
+
+function convertFileWebP(res, dir, file, from) {
+  const todir = path.join(__dirname, cwebpdir, dir); // result of cwebp
+  if (!fs.existsSync(todir)) {
+    console.log("mkdir : " + todir);
+    fs.mkdirSync(todir, { recursive: true });
+  }
+  const tofile = path.parse(file).name + ".webp";
+  const to = path.join(todir, tofile);
+  console.log("From : " + from + " To : " + to);
+
+  const binpath = path.join(osdir, "cwebp");
+  const cwebp = child_process.spawn(binpath, ["-lossless", from, "-o", to]);
+  cwebp.stderr.on("data", (data) => {
+    console.error("" + data);
+  });
+  cwebp.on("close", (code) => {
+    const i = new Int32Array([code])[0];
+    console.log("close " + i);
+    if (i == 0) {
+      var url = path.join(cwebpdir, dir, tofile).replace(/\\/gi, "/");
+      res.writeHead(201); // created
+      res.write(url);
+      res.end();
+    } else {
+      res.writeHead(500); // internal server error
+      res.end();
+    }
+    console.log("Remove : " + from);
+    fs.unlink(from, (e) => {
+      if (e) {
+        console.log("Unlink Error" + e);
+      }
+    });
+  });
+}
+
 function msgDispatch(req, res) {
   const addr = url.parse(req.url, true);
   const target = path.normalize(decodeURI(addr.path));
   var dirname = path.dirname(target);
   var filename = path.basename(target);
-  if (filename == "") {
-    filename = "imagetest.html";
+  //console.log("Method : " + req.method);
+  console.log("Path : [" + dirname + "][" + filename + "]");
+  if (req.method == "GET") {
+    if (filename == "") {
+      filename = "imagetest.html";
+    }
+    sendFile(res, dirname, filename);
+  } else if (req.method == "POST") {
+    receiveFile(res, dirname, filename, req, convertFileWebP);
+  } else if (req.method == "DELETE") {
+    deleteFile(res, dirname, filename);
   }
-  // console.log("Path : [" + dirname + "][" + filename + "]");
-  sendFile(res, dirname, filename);
 }
 
 const server = require(protocol).createServer(msgDispatch);

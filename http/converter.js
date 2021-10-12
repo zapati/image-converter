@@ -65,8 +65,7 @@ sprite.addEventListener("lostpointercapture", (e) => {
 });
 
 // ------------ Selection ------------
-const dirBackground = "background";
-const dirImage = "image";
+const dirUploaded = "webp";
 const selBackground = document.getElementById("selBackground");
 const selImage = document.getElementById("selImage");
 const reloadImage = document.getElementById("reloadImage");
@@ -129,17 +128,6 @@ window.addEventListener("keydown", (e) => {
 });
 
 // ------------ Request list ------------
-function addOptions(url, sel, arraytext) {
-  try {
-    const array = JSON.parse(arraytext);
-    array.forEach((name) => {
-      addOption(sel, name, url + "/" + name);
-    });
-    sel.dispatchEvent(new Event("change"));
-  } catch (e) {
-    console.log("Cannot parse : " + arraytext);
-  }
-}
 function sendRequest(url, sel) {
   var httpRequest = new XMLHttpRequest();
   httpRequest.onreadystatechange = () => {
@@ -157,15 +145,27 @@ function sendRequest(url, sel) {
 */
 
 // ------------ Drop from outside ------------
-function dropFile(file, startindex) {
+function dropFile(file, parentpath) {
+  const url = parentpath + "/" + file.name;
+  // TODO : add file left side
   file.arrayBuffer().then((buf) => {
-    const url = URL.createObjectURL(new Blob([buf]));
-    addOption(selImage, file.name, url);
-    selectImage(startindex);
+    var httpRequest = new XMLHttpRequest();
+    httpRequest.onreadystatechange = () => {
+      if (httpRequest.readyState === XMLHttpRequest.DONE) {
+        if (httpRequest.status === 201) {
+          console.log("Created : " + httpRequest.responseText);
+          // TODO : add file right side
+        } else {
+          console.log("Error " + httpRequest.status + "(" + url + ")");
+        }
+      }
+    };
+    httpRequest.open("POST", url);
+    httpRequest.send(buf);
   });
 }
 
-function dropDirectory(direntry, startindex) {
+function dropDirectory(direntry, parentpath) {
   let reader = direntry.createReader();
   let getEntries = function () {
     reader.readEntries(
@@ -173,10 +173,10 @@ function dropDirectory(direntry, startindex) {
         for (entry of entries) {
           if (entry.isDirectory) {
             console.log("SubDirectory: " + entry.name);
-            dropDirectory(entry);
+            dropDirectory(entry, parentpath + "/" + entry.name);
           } else if (entry.isFile) {
             entry.file((f) => {
-              dropFile(f, startindex);
+              dropFile(f, parentpath);
             });
           }
           getEntries();
@@ -192,7 +192,7 @@ const dropHere = document.getElementById("dropHere");
 dropHere.addEventListener("dragenter", (e) => {
   e.preventDefault();
   e.dataTransfer.dropEffect = "move";
-  inBox.style.background="Beige";
+  inBox.style.background = "Beige";
 });
 dropHere.addEventListener("dragover", (e) => {
   e.preventDefault();
@@ -200,19 +200,17 @@ dropHere.addEventListener("dragover", (e) => {
 });
 dropHere.addEventListener("dragleave", (e) => {
   e.preventDefault();
-  inBox.style.background="";
+  inBox.style.background = "";
 });
 dropHere.addEventListener("drop", (e) => {
   e.preventDefault();
-  dropHere.style.display="none";
-  /*
-  const startindex = selImage.length;
+  //dropHere.style.display="none";
   for (const item of e.dataTransfer.items) {
     if (item.kind == "file") {
       if (item.type.match(/^image/)) {
         const file = item.getAsFile();
         console.log("Image file: " + file.name);
-        dropFile(file, startindex);
+        dropFile(file, "");
       } else if (item.type == "") {
         // directory? try.
         // const handle = item.getAsFileSystemHandle(); // https only
@@ -221,8 +219,7 @@ dropHere.addEventListener("drop", (e) => {
           entry = item.webkitGetAsEntry();
           if (entry.isDirectory) {
             console.log("Directory: " + entry.name);
-            clearImage();
-            dropDirectory(entry, startindex);
+            dropDirectory(entry, "");
           }
         } else {
           console.log("No webkitGetAsEntry support: " + item.getAsFile().name);
@@ -239,7 +236,7 @@ dropHere.addEventListener("drop", (e) => {
       selectImage(-1);
       return; // should we?
     }
-  }*/
+  }
 });
 
 // ------------ Start ------------
