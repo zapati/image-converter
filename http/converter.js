@@ -7,18 +7,22 @@ const dirOutFiles = "cwebp";
 
 // ------------ Selection ------------
 outFiles.addEventListener("dblclick", () => {
-  for (const opt of outFiles) {
-    if (opt.selected) {
-      console.log("Select : " + opt.value);
-    }
+  for (const opt of outFiles.selectedOptions) {
+    console.log("Select : " + opt.value);
   }
 });
 
 // ------------ Request list ------------
-function addOption(sel, name, value) {
+function addOption(sel, name, text, value) {
+  const exist = sel.options[name];
+  if (exist) {
+    console.log(`Exist : ${name} ${exist.value} - ${value}`);
+    return exist;
+  }
   var opt = document.createElement("option");
+  opt.id = name;
+  opt.text = text;
   opt.value = value;
-  opt.innerHTML = name;
   sel.add(opt);
   return opt;
 }
@@ -26,9 +30,8 @@ function addOptions(url, sel, arraytext) {
   try {
     const array = JSON.parse(arraytext);
     array.forEach((name) => {
-      addOption(sel, url + "/" + name, url + "/" + name);
+      addOption(sel, name, name, url + "/" + name);
     });
-    sel.dispatchEvent(new Event("change"));
   } catch (e) {
     console.log("Cannot parse : " + arraytext);
   }
@@ -55,7 +58,7 @@ function dropFile(file, parentpath) {
   //  left
   dropHere.style.display = "none";
   inFiles.style.display = "block";
-  const inOpt = addOption(inFiles, url + " (converting...)", "");
+  const inOpt = addOption(inFiles, url, url + " (converting...)", "");
 
   file.arrayBuffer().then((buf) => {
     var httpRequest = new XMLHttpRequest();
@@ -63,13 +66,16 @@ function dropFile(file, parentpath) {
       if (httpRequest.readyState === XMLHttpRequest.DONE) {
         if (httpRequest.status === 201) {
           console.log("Created : " + httpRequest.responseText);
-          inOpt.innerHTML = url + " (converted)";
-          const name = httpRequest.responseText;
-          const value = httpRequest.responseText;
-          addOption(outFiles, name, value);
+          inOpt.text = url + " (converted)";
+          var name = httpRequest.responseText;
+          const baseurl = dirOutFiles + "/";
+          if (name.indexOf(baseurl) == 0) {
+            name = name.substr(baseurl.length); // remove "cwebp/" from the beginning
+          }
+          addOption(outFiles, name, name, httpRequest.responseText);
         } else {
           console.log("Error " + httpRequest.status + "(" + url + ")");
-          inOpt.innerHTML = url + " (error)";
+          inOpt.text = url + " (error)";
         }
       }
     };
@@ -86,10 +92,10 @@ function dropDirectory(direntry, parentpath) {
         for (entry of entries) {
           if (entry.isDirectory) {
             console.log("SubDirectory: " + entry.name);
-            dropDirectory(entry, parentpath + "/" + entry.name);
+            dropDirectory(entry, parentpath + "/" + direntry.name);
           } else if (entry.isFile) {
             entry.file((f) => {
-              dropFile(f, parentpath);
+              dropFile(f, parentpath + "/" + direntry.name);
             });
           }
           getEntries();
@@ -135,7 +141,9 @@ function setupDrop(elem) {
               dropDirectory(entry, "");
             }
           } else {
-            console.log("No webkitGetAsEntry support: " + item.getAsFile().name);
+            console.log(
+              "No webkitGetAsEntry support: " + item.getAsFile().name
+            );
           }
         } else {
           console.log("Type [" + item.type + "] " + item.getAsFile().name);

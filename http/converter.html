@@ -47,10 +47,19 @@
     <hr />
     <div id="inBox" class="halfbox" style="float: left">
       <div id="dropHere" class="guidebox">Drop files or folder here</div>
-      <select id="inFiles" class="fileselect"  style="display:none" multiple></select>
+      <select
+        id="inFiles"
+        class="fileselect"
+        style="display: none"
+        multiple
+      ></select>
     </div>
     <div id="outBox" class="halfbox" style="float: right">
       <select id="outFiles" class="fileselect" multiple></select>
+      <button id="dnSel">Download</button>
+      <button id="dnAll">Download All</button>
+      <button id="rmSel">Remove</button>
+      <button id="rmAll">Remove All</button>
     </div>
     <script src="converter.js"></script>
   </body>

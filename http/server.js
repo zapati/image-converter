@@ -152,8 +152,27 @@ function convertFileWebP(res, dir, file, from) {
   console.log("From : " + from + " To : " + to);
 
   const binpath = path.join(osdir, "cwebp");
-  const command = '"'+binpath+'" -lossless "' + from + '" -o "' + to + '"'; 
-  const cwebp = child_process.exec(command,  (error, stdout, stderr) => {
+  /*
+  const cwebp = child_process.spawn(binpath, ["-lossless", from, "-o", to]);
+  cwebp.stderr.on("data", (data) => {
+    console.error("" + data);
+  });
+  cwebp.on("close", (code) => {
+    const i = new Int32Array([code])[0];
+    console.log("close " + i);
+    if (i == 0) {
+      var url = path.join(cwebpdir, dir, tofile).replace(/\\/gi, "/");
+      res.writeHead(201); // created
+      res.write(url);
+      res.end();
+    } else {
+      res.writeHead(500); // internal server error
+      res.end();
+    }
+    */
+  const command = '"' + binpath + '" -lossless "' + from + '" -o "' + to + '"';
+  console.error(`command: ${command}`);
+  const cwebp = child_process.exec(command, (error, stdout, stderr) => {
     if (error) {
       console.error(`exec error: ${error}`);
       res.writeHead(500); // internal server error
@@ -166,6 +185,7 @@ function convertFileWebP(res, dir, file, from) {
       res.write(url);
       res.end();
     }
+
     console.log("Remove : " + from);
     fs.unlink(from, (e) => {
       if (e) {
