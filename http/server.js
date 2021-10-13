@@ -161,12 +161,10 @@ function convertFileWebP(res, dir, file, from) {
     } else {
       console.log(`stdout: ${stdout}`);
       console.error(`stderr: ${stderr}`);
-setTimeout(()=>{
       var url = path.join(cwebpdir, dir, tofile).replace(/\\/gi, "/");
       res.writeHead(201); // created
       res.write(url);
       res.end();
-},1000);
     }
     console.log("Remove : " + from);
     fs.unlink(from, (e) => {
