@@ -21,6 +21,13 @@
         display: table-cell;
         vertical-align: middle;
       }
+      .fileselect {
+        width: 100%;
+        height: 200px;
+        align: center;
+        display: table-cell;
+        vertical-align: middle;
+      }
     </style>
   </head>
   <body class="homepage" id="None">
@@ -40,9 +47,10 @@
     <hr />
     <div id="inBox" class="halfbox" style="float: left">
       <div id="dropHere" class="guidebox">Drop files or folder here</div>
+      <select id="inFiles" class="fileselect"  style="display:none" multiple></select>
     </div>
     <div id="outBox" class="halfbox" style="float: right">
-      <div id="resultHere" class="guidebox" style="color: #c0c0c0">Result</div>
+      <select id="outFiles" class="fileselect" multiple></select>
     </div>
     <script src="converter.js"></script>
   </body>
