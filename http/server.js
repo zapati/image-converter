@@ -137,12 +137,22 @@ function receiveFile(res, dir, file, req, done_cb) {
 }
 
 function deleteFile(res, dir, file) {
-  console.log("Delete :[" + dir + "][" + file + "]");
-  // TODO :
+  const filepath = path.join(__dirname, dir, file);
+  console.log("Delete :[" + filepath + "]");
+  fs.unlink(filepath, (err) => {
+    if (err) {
+      console.error("Delete error : " + err);
+      res.writeHead(500); // internal server error
+      res.end();
+      return;
+    }
+    console.error("Delete done");
+    res.writeHead(200);
+  });
 }
 
 function convertFileWebP(res, dir, file, from) {
-  const todir = path.join(__dirname, cwebpdir, dir); // result of cwebp
+  const todir = path.join(__dirname, dir);
   if (!fs.existsSync(todir)) {
     console.log("mkdir : " + todir);
     fs.mkdirSync(todir, { recursive: true });
@@ -161,7 +171,7 @@ function convertFileWebP(res, dir, file, from) {
     const i = new Int32Array([code])[0];
     console.log("close " + i);
     if (i == 0) {
-      var url = path.join(cwebpdir, dir, tofile).replace(/\\/gi, "/");
+      var url = path.join(dir, tofile).replace(/\\/gi, "/");
       res.writeHead(201); // created
       res.write(url);
       res.end();
@@ -180,7 +190,9 @@ function convertFileWebP(res, dir, file, from) {
     } else {
       console.log(`stdout: ${stdout}`);
       console.error(`stderr: ${stderr}`);
-      var url = path.join(cwebpdir, dir, tofile).replace(/\\/gi, "/");
+      var url = path.join(dir, tofile)
+        .replace(/\\/gi, "/")
+        .replace(new RegExp("^[/]+"), "");
       res.writeHead(201); // created
       res.write(url);
       res.end();

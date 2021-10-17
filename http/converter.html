@@ -13,12 +13,15 @@
         border: 2px solid #73ad21;
         padding: 0.1% 0.3% 0.1% 0.3%;
       }
-      .guidebox {
-        width: 1%;
-        height: 200px;
-        align: center;
+      .halftext {
+        width: 48.5%;
         text-align: center;
-        display: table-cell;
+      }
+      .guidebox {
+        width: 100%;
+        height: 200px;
+        line-height: 200px;
+        text-align: center;
         vertical-align: middle;
       }
       .fileselect {
@@ -28,36 +31,60 @@
         display: table-cell;
         vertical-align: middle;
       }
-    </style>
+      .text_succeed {
+        color: green;
+      }
+      .text_error {
+        color: red;
+      }
+      .text_normal {
+        color: black;
+      }
+   </style>
   </head>
   <body class="homepage" id="None">
     <div style="float: right">
       <a href="imagetest.html">Go Test</a>
     </div>
     <div>
-      <label for="selType">ConvertType :</label>
+      <label for="selType">Conversion Type :</label>
       <select name="selType" id="selType">
-        <option value="WBP">To WebP</option>
-        <option value="ANW">To AnimatedWebP</option>
-        <option value="PNG">To clean PNG (fast)</option>
-        <option value="ZOP">To zopfli PNG (small)</option>
+        <option value="WebP">To WebP</option>
+        <option value="AnimatedWebP">To AnimatedWebP</option>
+        <option value="CleanPNG" disabled>To clean PNG (fast)</option>
+        <option value="ZopfliPNG" disabled>To zopfli PNG (small)</option>
       </select>
-      <div id="typeOption"></div>
     </div>
     <hr />
+    <div>
+      <div id="inInfo" class="halftext" style="float: left;">Input Files</div>
+      <div id="outInfo" class="halftext" style="float: right">Converted Images</div>
+    </div>
     <div id="inBox" class="halfbox" style="float: left">
       <div id="dropHere" class="guidebox">Drop files or folder here</div>
-      <select
-        id="inFiles"
-        class="fileselect"
-        style="display: none"
-        multiple
-      ></select>
+      <select id="inFiles" class="fileselect" multiple></select>
+      <div id="typeOption">
+        <label for="selFPS">Frame per second :</label>
+        <select name="selFPS" id="selFPS">
+          <option value="60">60</option>
+          <option value="30">30</option>
+          <option value="15">15</option>
+        </select>
+        &nbsp;&nbsp;
+        <label for="selLoop">Loop count :</label>
+        <select name="selLoop" id="selLoop">
+          <option value="infinite">infinite</option>
+          <option value="1">1</option>
+          <option value="2">2</option>
+        </select>
+        &nbsp;&nbsp;
+        <button id="makeAni">Make Animation</button>
+      </div>
     </div>
     <div id="outBox" class="halfbox" style="float: right">
       <select id="outFiles" class="fileselect" multiple></select>
       <button id="dnSel">Download</button>
-      <button id="dnAll">Download All</button>
+      <button id="dnAll" disabled>Download All</button>
       <button id="rmSel">Remove</button>
       <button id="rmAll">Remove All</button>
     </div>

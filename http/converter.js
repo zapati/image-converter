@@ -1,28 +1,85 @@
 const selType = document.getElementById("selType");
 const typeOption = document.getElementById("typeOption");
+const inInfo = document.getElementById("inInfo");
 const dropHere = document.getElementById("dropHere");
 const inFiles = document.getElementById("inFiles");
+const outInfo = document.getElementById("outInfo");
 const outFiles = document.getElementById("outFiles");
-const dirOutFiles = "cwebp";
+const makeAni = document.getElementById("makeAni");
+var dirOutFiles = "cwebp";
+var inDone = 0;
+var inTotal = 0;
 
-// ------------ Selection ------------
-outFiles.addEventListener("dblclick", () => {
-  for (const opt of outFiles.selectedOptions) {
-    console.log("Select : " + opt.value);
+// ------------ Conversion Type ------------
+selType.addEventListener("change", () => {
+  // clear
+  dropHere.style.display = "block";
+  inFiles.style.display = "none";
+  inWait = 0;
+  inTotal = 0;
+  while (inFiles.lastElementChild) {
+    inFiles.removeChild(inFiles.lastElementChild);
   }
+  while (outFiles.lastElementChild) {
+    outFiles.removeChild(outFiles.lastElementChild);
+  }
+
+  // set option
+  switch(selType.options[selType.selectedIndex].value) {
+    case "WebP":
+      dirOutFiles = "cwebp";
+      typeOption.style.display = "none";
+      break;
+    case "AnimatedWebP":
+      dirOutFiles = "awebp";
+      typeOption.style.display = "block";
+      makeAni.disabled = true;
+      break;
+    case "CleanPNG":
+      // TODO:
+      break;
+    case "ZopfliPNG":
+      // TODO:
+      break;
+  }
+  updateInfo();
+
+  // fill outfile list
+  sendRequest(dirOutFiles, outFiles);
 });
 
+function updateInfo() {
+  inInfo.innerHTML = `Input Files (${inDone}/${inTotal})`;
+  outInfo.innerHTML = `Converted Images (${dirOutFiles})`;
+  if (selType.options[selType.selectedIndex].value != "AnimatedWebP") {
+    addOption(outFiles, name, name, url);
+    return;
+  }
+  if (inDone> 0 && inDone == inTotal) {
+    makeAni.disabled = false;
+  }
+}
+
+function onFileConverted(name, url) {
+  if (selType.options[selType.selectedIndex].value != "AnimatedWebP") {
+    addOption(outFiles, name, name, url);
+    return;
+  }
+}
+
+
 // ------------ Request list ------------
-function addOption(sel, name, text, value) {
-  const exist = sel.options[name];
+function addOption(sel, id, text, value) {
+  const exist = sel.options[id];
   if (exist) {
-    console.log(`Exist : ${name} ${exist.value} - ${value}`);
+    console.log(`Exist : ${id} ${exist.value} - ${value}`);
     return exist;
   }
   var opt = document.createElement("option");
-  opt.id = name;
+  opt.id = id;
   opt.text = text;
   opt.value = value;
+  opt.className = "text_normal";
   sel.add(opt);
   return opt;
 }
@@ -53,33 +110,37 @@ function sendRequest(url, sel) {
 
 // ------------ Drop from outside ------------
 function dropFile(file, parentpath) {
+  const baseurl = dirOutFiles + "/";
   const url = parentpath + "/" + file.name;
 
   //  left
   dropHere.style.display = "none";
   inFiles.style.display = "block";
   const inOpt = addOption(inFiles, url, url + " (converting...)", "");
+  inTotal++; updateInfo();
 
   file.arrayBuffer().then((buf) => {
     var httpRequest = new XMLHttpRequest();
     httpRequest.onreadystatechange = () => {
       if (httpRequest.readyState === XMLHttpRequest.DONE) {
+        inDone++; updateInfo();
         if (httpRequest.status === 201) {
           console.log("Created : " + httpRequest.responseText);
           inOpt.text = url + " (converted)";
+          inOpt.className = "text_succeed";
           var name = httpRequest.responseText;
-          const baseurl = dirOutFiles + "/";
           if (name.indexOf(baseurl) == 0) {
             name = name.substr(baseurl.length); // remove "cwebp/" from the beginning
           }
-          addOption(outFiles, name, name, httpRequest.responseText);
+          onFileConverted(name, httpRequest.responseText);
         } else {
           console.log("Error " + httpRequest.status + "(" + url + ")");
           inOpt.text = url + " (error)";
+          inOpt.className = "text_error";
         }
       }
     };
-    httpRequest.open("POST", url);
+    httpRequest.open("POST", baseurl + url);
     httpRequest.send(buf);
   });
 }
@@ -163,11 +224,69 @@ function setupDrop(elem) {
 setupDrop(inFiles);
 setupDrop(dropHere);
 
+
+// ------------ Download ------------
+function downloadFile(url, filename) {
+  var elem = document.createElement('a');
+  elem.setAttribute('href', url);
+  elem.setAttribute('download', filename);
+  elem.style.display = 'none';
+  document.body.appendChild(elem);
+  elem.click();
+  document.body.removeChild(elem);
+}
+function downloadFiles(options) {
+  for (const opt of options) {
+    const url = opt.value;
+    const name = url.split('/').pop();
+    console.log(`Select : ${url} (${name})`);
+    downloadFile(url, name);
+  }
+}
+outFiles.addEventListener("dblclick", () => {
+  downloadFiles(outFiles.selectedOptions);
+});
+document.getElementById("dnSel").addEventListener("click", () => {
+  downloadFiles(outFiles.selectedOptions);
+});
+document.getElementById("dnAll").addEventListener("click", () => {
+  downloadFiles(outFiles.options);
+});
+
+// ------------ Remove ------------
+function removeFiles(options) {
+  for (const opt of options) {
+    const url = opt.value;
+    const httpRequest = new XMLHttpRequest();
+    httpRequest.onreadystatechange = () => {
+      if (httpRequest.readyState === XMLHttpRequest.DONE) {
+        if (httpRequest.status === 200) {
+          console.log(`Removed : ${url}`);
+        } else {
+          console.log(`Remove Error(${httpRequest.status}) : ${url}`);
+        }
+        sel = opt.parentElement;
+        if (sel) sel.remove(opt.index);
+      }
+    };
+    httpRequest.open("DELETE", url);
+    httpRequest.send();
+  }
+}
+document.getElementById("rmSel").addEventListener("click", () => {
+  removeFiles(outFiles.selectedOptions);
+});
+document.getElementById("rmAll").addEventListener("click", () => {
+  removeFiles(outFiles.options);
+});
+
+
 // ------------ Start ------------
 window.addEventListener(
   "load",
   () => {
-    sendRequest(dirOutFiles, outFiles);
+    selType.selectedIndex = 1;
+    selType.dispatchEvent(new Event("change"));
   },
   false
 );
