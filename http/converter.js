@@ -1,22 +1,28 @@
 const selType = document.getElementById("selType");
-const typeOption = document.getElementById("typeOption");
 const inInfo = document.getElementById("inInfo");
+
 const dropHere = document.getElementById("dropHere");
 const inFiles = document.getElementById("inFiles");
+
 const outInfo = document.getElementById("outInfo");
 const outFiles = document.getElementById("outFiles");
+
+const muxInfo = document.getElementById("muxInfo");
+const muxOption = document.getElementById("muxOption");
 const makeAni = document.getElementById("makeAni");
-var dirOutFiles = "cwebp";
+
 var inDone = 0;
 var inTotal = 0;
+var dirOutFiles = "cwebp";
+var dirMuxFiles = "awebp";
 
 // ------------ Conversion Type ------------
 selType.addEventListener("change", () => {
   // clear
-  dropHere.style.display = "block";
-  inFiles.style.display = "none";
   inWait = 0;
   inTotal = 0;
+  dropHere.style.display = "block";
+  inFiles.style.display = "none";
   while (inFiles.lastElementChild) {
     inFiles.removeChild(inFiles.lastElementChild);
   }
@@ -28,11 +34,7 @@ selType.addEventListener("change", () => {
   switch(selType.options[selType.selectedIndex].value) {
     case "WebP":
       dirOutFiles = "cwebp";
-      typeOption.style.display = "none";
-      break;
-    case "AnimatedWebP":
-      dirOutFiles = "awebp";
-      typeOption.style.display = "block";
+      muxOption.style.display = "block";
       makeAni.disabled = true;
       break;
     case "CleanPNG":
@@ -51,10 +53,7 @@ selType.addEventListener("change", () => {
 function updateInfo() {
   inInfo.innerHTML = `Input Files (${inDone}/${inTotal})`;
   outInfo.innerHTML = `Converted Images (${dirOutFiles})`;
-  if (selType.options[selType.selectedIndex].value != "AnimatedWebP") {
-    addOption(outFiles, name, name, url);
-    return;
-  }
+  muxInfo.innerHTML = `Animated Images (${dirMuxFiles})`;
   if (inDone> 0 && inDone == inTotal) {
     makeAni.disabled = false;
   }
@@ -80,6 +79,9 @@ function addOption(sel, id, text, value) {
   opt.text = text;
   opt.value = value;
   opt.className = "text_normal";
+  if (sel.draggable) {
+    setupDrag(opt);
+  }
   sel.add(opt);
   return opt;
 }
@@ -224,24 +226,41 @@ function setupDrop(elem) {
 setupDrop(inFiles);
 setupDrop(dropHere);
 
+// ------------ Select/Unselect ------------
+const selAll = document.getElementById("selAll");
+selAll.addEventListener("click", () => {
+  if (selAll.innerHTML == "Select All") {
+    for (opt of outFiles) opt.selected = true;
+    selAll.innerHTML = "Deselect All";
+  } else {
+    for (opt of outFiles) opt.selected = false;
+    selAll.innerHTML = "Select All";
+  }
+});
 
 // ------------ Download ------------
-function downloadFile(url, filename) {
-  var elem = document.createElement('a');
+function getDownloadURL(options) {
+  if (options.length == 1) return options[0].value;
+  // TODO : make zip-command
+  /*for (const opt of options) {
+    console.log(`Select : ${opt.value}`);
+  }
+  url = ...zip;*/
+  return "ToBeDone.zip";
+}
+function downloadFiles(options) {
+  if (options.length < 1) return;
+  const url = getDownloadURL(options);
+  const name = url.split('/').pop();
+  
+  console.log(`download : ${url} (${name})`);
+  const elem = document.createElement('a');
   elem.setAttribute('href', url);
-  elem.setAttribute('download', filename);
+  elem.setAttribute('download', name);
   elem.style.display = 'none';
   document.body.appendChild(elem);
   elem.click();
   document.body.removeChild(elem);
-}
-function downloadFiles(options) {
-  for (const opt of options) {
-    const url = opt.value;
-    const name = url.split('/').pop();
-    console.log(`Select : ${url} (${name})`);
-    downloadFile(url, name);
-  }
 }
 outFiles.addEventListener("dblclick", () => {
   downloadFiles(outFiles.selectedOptions);
@@ -249,8 +268,13 @@ outFiles.addEventListener("dblclick", () => {
 document.getElementById("dnSel").addEventListener("click", () => {
   downloadFiles(outFiles.selectedOptions);
 });
-document.getElementById("dnAll").addEventListener("click", () => {
-  downloadFiles(outFiles.options);
+document.getElementById("dnDrag").addEventListener("dragstart", (e) => {
+  if (outFiles.selectedOptions.length < 1) return;
+  const url = window.location + getDownloadURL(outFiles.selectedOptions);
+  const name = url.split('/').pop();
+
+  console.log(`application/octet-stream:${name}:${url}`);
+  e.dataTransfer.setData("DownloadURL", [`application/octet-stream:${name}:${url}`]);
 });
 
 // ------------ Remove ------------
@@ -274,18 +298,20 @@ function removeFiles(options) {
   }
 }
 document.getElementById("rmSel").addEventListener("click", () => {
+  // TODO : check
   removeFiles(outFiles.selectedOptions);
 });
 document.getElementById("rmAll").addEventListener("click", () => {
+  // TODO : check
   removeFiles(outFiles.options);
 });
-
+// TODO : 'del" key
 
 // ------------ Start ------------
 window.addEventListener(
   "load",
   () => {
-    selType.selectedIndex = 1;
+    selType.selectedIndex = 0;
     selType.dispatchEvent(new Event("change"));
   },
   false

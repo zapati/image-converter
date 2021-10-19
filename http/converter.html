@@ -6,15 +6,18 @@
     <title>WebP image converter</title>
     <style>
       .halfbox {
-        width: 48.5%;
+        width : 49%;
+        padding: 0.1% 0.3% 0.1% 0.3%;
+      }
+      .roundbox {
+        width: 100%;
         height: 100%;
         min-height: 200px;
         border-radius: 5px;
         border: 2px solid #73ad21;
-        padding: 0.1% 0.3% 0.1% 0.3%;
       }
-      .halftext {
-        width: 48.5%;
+      .infotext {
+        width: 100%;
         text-align: center;
       }
       .guidebox {
@@ -30,6 +33,15 @@
         align: center;
         display: table-cell;
         vertical-align: middle;
+      }
+      .dragdownload {
+        color: white;
+        font-size: 14px;
+        float: right;
+        border-radius: 5px;
+        background-color: #73ad21;
+        padding: 2px;
+        margin: 2px;
       }
       .text_succeed {
         color: green;
@@ -49,44 +61,51 @@
     <div>
       <label for="selType">Conversion Type :</label>
       <select name="selType" id="selType">
-        <option value="WebP">To WebP</option>
-        <option value="AnimatedWebP">To AnimatedWebP</option>
+        <option value="WebP">To WebP/AnimatedWebP</option>
         <option value="CleanPNG" disabled>To clean PNG (fast)</option>
         <option value="ZopfliPNG" disabled>To zopfli PNG (small)</option>
       </select>
     </div>
     <hr />
-    <div>
-      <div id="inInfo" class="halftext" style="float: left;">Input Files</div>
-      <div id="outInfo" class="halftext" style="float: right">Converted Images</div>
-    </div>
-    <div id="inBox" class="halfbox" style="float: left">
-      <div id="dropHere" class="guidebox">Drop files or folder here</div>
-      <select id="inFiles" class="fileselect" multiple></select>
-      <div id="typeOption">
-        <label for="selFPS">Frame per second :</label>
-        <select name="selFPS" id="selFPS">
-          <option value="60">60</option>
-          <option value="30">30</option>
-          <option value="15">15</option>
-        </select>
-        &nbsp;&nbsp;
-        <label for="selLoop">Loop count :</label>
-        <select name="selLoop" id="selLoop">
-          <option value="infinite">infinite</option>
-          <option value="1">1</option>
-          <option value="2">2</option>
-        </select>
-        &nbsp;&nbsp;
-        <button id="makeAni">Make Animation</button>
+    <div class="halfbox" style="float:left;">
+      <div id="inInfo" class="infotext">Input Files</div>
+      <div id="inBox" class="roundbox">
+        <div id="dropHere" class="guidebox">Drop files or folder here</div>
+        <select id="inFiles" class="fileselect" multiple style="display:none"></select>
       </div>
     </div>
-    <div id="outBox" class="halfbox" style="float: right">
-      <select id="outFiles" class="fileselect" multiple></select>
-      <button id="dnSel">Download</button>
-      <button id="dnAll" disabled>Download All</button>
-      <button id="rmSel">Remove</button>
-      <button id="rmAll">Remove All</button>
+    <div class="halfbox" style="float:right;">
+      <div id="outInfo" class="infotext">Converted Images</div>
+      <div id="outBox" class="roundbox">
+        <select id="outFiles" class="fileselect" multiple></select>
+        <button id="selAll">Select All</button>
+        <button id="dnSel">Download</button>
+        <button id="rmSel">Remove</button>
+        <button id="rmAll">Remove All</button>
+        <div id="dnDrag"class="dragdownload" draggable="true">DragThisToDownload</button>
+      </div>
+      <p />
+      <div id="muxInfo" class="infotext">Animated Images</div>
+      <div id="muxBox" class="roundbox">
+        <div id="muxOption">
+          <label for="selFPS">Frame per second :</label>
+          <select name="selFPS" id="selFPS">
+            <option value="60">60</option>
+            <option value="30">30</option>
+            <option value="15">15</option>
+          </select>
+          &nbsp;&nbsp;
+          <label for="selLoop">Loop count :</label>
+          <select name="selLoop" id="selLoop">
+            <option value="infinite">infinite</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+          </select>
+          &nbsp;&nbsp;
+          <button id="makeAni">↓Make Animation</button>
+        </div>
+        <select id="muxFiles" class="fileselect" multiple></select>
+      </div>
     </div>
     <script src="converter.js"></script>
   </body>

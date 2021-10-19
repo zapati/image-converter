@@ -216,7 +216,7 @@ function msgDispatch(req, res) {
   console.log("Path : [" + dirname + "][" + filename + "]");
   if (req.method == "GET") {
     if (filename == "") {
-      filename = "imagetest.html";
+      filename = "converter.html";
     }
     sendFile(res, dirname, filename);
   } else if (req.method == "POST") {
