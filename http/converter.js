@@ -321,7 +321,7 @@ outDnSel.addEventListener("click", () => downloadFiles(outFiles.selectedOptions,
 outDnDrag.addEventListener("dragstart", (e) => downloadDragStart(e, outFiles.selectedOptions, dirOutFiles));
 muxFiles.addEventListener("dblclick", () => downloadFiles(muxFiles.selectedOptions, dirMuxFiles));
 muxDnSel.addEventListener("click", () => downloadFiles(muxFiles.selectedOptions, dirMuxFiles));
-muxDnDrag.addEventListener("dragstart", (e) => downloadDragStart(e, outFiles.selectedOptions, dirMuxFiles));
+muxDnDrag.addEventListener("dragstart", (e) => downloadDragStart(e, muxFiles.selectedOptions, dirMuxFiles));
 
 
 // ------------ Remove ------------
