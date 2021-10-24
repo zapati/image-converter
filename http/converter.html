@@ -6,33 +6,30 @@
     <title>WebP image converter</title>
     <style>
       .halfbox {
-        width : 49%;
+        width: 49.2%;
         padding: 0.1% 0.3% 0.1% 0.3%;
       }
       .roundbox {
-        width: 100%;
-        height: 100%;
-        min-height: 200px;
         border-radius: 5px;
         border: 2px solid #73ad21;
-      }
-      .infotext {
-        width: 100%;
-        text-align: center;
-      }
-      .guidebox {
-        width: 100%;
-        height: 200px;
-        line-height: 200px;
-        text-align: center;
-        vertical-align: middle;
+        padding: 0.1% 0.3% 0.1% 0.3%;
       }
       .fileselect {
         width: 100%;
-        height: 200px;
+        height: 85vh;
+        min-height: 200px;
         align: center;
-        display: table-cell;
         vertical-align: middle;
+      }
+      .fileselect.short {
+        height: 40vh;
+      }
+      .fileselect.shorter {
+        height: 20vh;
+      }
+      .fileselect.guide {
+        line-height: 80vh;
+        text-align: center;
       }
       .dragdownload {
         color: white;
@@ -42,6 +39,14 @@
         background-color: #73ad21;
         padding: 2px;
         margin: 2px;
+      }
+      .dragdownload.off {
+        background-color: gray;
+      }
+      .infotext {
+        width: 100%;
+        font-weight: bold;
+        text-align: center;
       }
       .text_succeed {
         color: green;
@@ -68,35 +73,36 @@
     </div>
     <hr />
     <div class="halfbox" style="float:left;">
-      <div id="inInfo" class="infotext">Input Files</div>
       <div id="inBox" class="roundbox">
-        <div id="dropHere" class="guidebox">Drop files or folder here</div>
+        <div id="inInfo" class="infotext">Input Files</div>
+        <div id="dropHere" class="fileselect guide">Drop files or folder here</div>
         <select id="inFiles" class="fileselect" multiple style="display:none"></select>
       </div>
     </div>
     <div class="halfbox" style="float:right;">
-      <div id="outInfo" class="infotext">Converted Images</div>
       <div id="outBox" class="roundbox">
-        <select id="outFiles" class="fileselect" multiple></select>
-        <button id="selAll">Select All</button>
-        <button id="dnSel">Download</button>
-        <button id="rmSel">Remove</button>
-        <button id="rmAll">Remove All</button>
-        <div id="dnDrag"class="dragdownload" draggable="true">DragThisToDownload</button>
+        <div id="outInfo" class="infotext">Converted Images</div>
+        <select id="outFiles" class="fileselect short" multiple></select>
+        <button id="outSelAll">Select All</button>
+        <button id="outDnSel">Download</button>
+        <div id="outSelInfo" style="display:inline">Sel:0/0</div>
+        <button id="outRmSel">Remove</button>
+        <button id="outRmAll">Remove All</button>
+        <div id="outDnDrag" class="dragdownload" draggable="true">DragThisToDownload</div>
       </div>
       <p />
-      <div id="muxInfo" class="infotext">Animated Images</div>
       <div id="muxBox" class="roundbox">
+        <div id="muxInfo" class="infotext">Animated Images</div>
         <div id="muxOption">
-          <label for="selFPS">Frame per second :</label>
-          <select name="selFPS" id="selFPS">
+          <label for="muxSelFPS">Frame per second :</label>
+          <select name="muxSelFPS" id="muxSelFPS">
             <option value="60">60</option>
             <option value="30">30</option>
             <option value="15">15</option>
           </select>
           &nbsp;&nbsp;
-          <label for="selLoop">Loop count :</label>
-          <select name="selLoop" id="selLoop">
+          <label for="muxSelLoop">Loop count :</label>
+          <select name="muxSelLoop" id="muxSelLoop">
             <option value="infinite">infinite</option>
             <option value="1">1</option>
             <option value="2">2</option>
@@ -104,7 +110,13 @@
           &nbsp;&nbsp;
           <button id="makeAni">↓Make Animation</button>
         </div>
-        <select id="muxFiles" class="fileselect" multiple></select>
+        <select id="muxFiles" class="fileselect shorter" multiple></select>
+        <button id="muxSelAll">Select All</button>
+        <button id="muxDnSel">Download</button>
+        <div id="muxSelInfo" style="display:inline">Sel:0/0</div>
+        <button id="muxRmSel">Remove</button>
+        <button id="muxRmAll">Remove All</button>
+        <div id="muxDnDrag" class="dragdownload" draggable="true">DragThisToDownload</div>
       </div>
     </div>
     <script src="converter.js"></script>

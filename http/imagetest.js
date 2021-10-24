@@ -64,7 +64,7 @@ sprite.addEventListener("lostpointercapture", (e) => {
 
 // ------------ Selection ------------
 const dirBackground = "background";
-const dirImage = "image";
+const dirImage = "awebp";//"image";
 const selBackground = document.getElementById("selBackground");
 const selImage = document.getElementById("selImage");
 const reloadImage = document.getElementById("reloadImage");

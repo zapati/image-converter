@@ -8,13 +8,13 @@ const outInfo = document.getElementById("outInfo");
 const outFiles = document.getElementById("outFiles");
 
 const muxInfo = document.getElementById("muxInfo");
-const muxOption = document.getElementById("muxOption");
-const makeAni = document.getElementById("makeAni");
+const muxFiles = document.getElementById("muxFiles");
 
 var inDone = 0;
 var inTotal = 0;
 var dirOutFiles = "cwebp";
 var dirMuxFiles = "awebp";
+
 
 // ------------ Conversion Type ------------
 selType.addEventListener("change", () => {
@@ -29,13 +29,14 @@ selType.addEventListener("change", () => {
   while (outFiles.lastElementChild) {
     outFiles.removeChild(outFiles.lastElementChild);
   }
+  while (muxFiles.lastElementChild) {
+    muxFiles.removeChild(outFiles.lastElementChild);
+  }
 
   // set option
   switch(selType.options[selType.selectedIndex].value) {
     case "WebP":
       dirOutFiles = "cwebp";
-      muxOption.style.display = "block";
-      makeAni.disabled = true;
       break;
     case "CleanPNG":
       // TODO:
@@ -44,27 +45,53 @@ selType.addEventListener("change", () => {
       // TODO:
       break;
   }
-  updateInfo();
+  updateStatus();
 
   // fill outfile list
   sendRequest(dirOutFiles, outFiles);
+  sendRequest(dirMuxFiles, muxFiles);
 });
 
-function updateInfo() {
+
+// ------------ Info and buttons ------------
+const outSelAll = document.getElementById("outSelAll");
+const outDnSel = document.getElementById("outDnSel");
+const outSelInfo = document.getElementById("outSelInfo");
+const outRmSel = document.getElementById("outRmSel");
+const outRmAll = document.getElementById("outRmAll");
+const outDnDrag = document.getElementById("outDnDrag");
+const makeAni = document.getElementById("makeAni");
+function updateStatus() {
   inInfo.innerHTML = `Input Files (${inDone}/${inTotal})`;
   outInfo.innerHTML = `Converted Images (${dirOutFiles})`;
   muxInfo.innerHTML = `Animated Images (${dirMuxFiles})`;
-  if (inDone> 0 && inDone == inTotal) {
-    makeAni.disabled = false;
-  }
-}
 
-function onFileConverted(name, url) {
-  if (selType.options[selType.selectedIndex].value != "AnimatedWebP") {
-    addOption(outFiles, name, name, url);
-    return;
-  }
+  const out_count = outFiles.selectedOptions.length;
+  const out_total = outFiles.length;
+  outSelAll.innerHTML = (out_count == out_total)? "Deselect All" : "Select All";
+  outSelAll.disabled = (out_total < 1);
+  outDnSel.disabled = (out_count < 1);
+  outSelInfo.innerHTML = `Sel:${out_count}/${out_total}`;
+  outRmSel.disabled = (out_count < 1);
+  outRmAll.disabled = (out_total < 1);
+  outDnDrag.className = (out_count < 1)? "dragdownload off" : "dragdownload";
+  outDnDrag.disabled = (out_count < 1);
+
+  makeAni.disabled = (out_count < 2);
+
+  const mux_count = muxFiles.selectedOptions.length;
+  const mux_total = muxFiles.length;
+  muxSelAll.innerHTML = (mux_count == mux_total)? "Deselect All" : "Select All";
+  muxSelAll.disabled = (mux_total < 1);
+  muxDnSel.disabled = (mux_count < 1);
+  muxSelInfo.innerHTML = `Sel:${mux_count}/${mux_total}`;
+  muxRmSel.disabled = (mux_count < 1);
+  muxRmAll.disabled = (mux_total < 1);
+  muxDnDrag.className = (mux_count < 1)? "dragdownload off" : "dragdownload";
+  muxDnDrag.disabled = (mux_count < 1);  
 }
+outFiles.addEventListener("change", () => {updateStatus()});
+muxFiles.addEventListener("change", () => {updateStatus()});
 
 
 // ------------ Request list ------------
@@ -94,21 +121,28 @@ function addOptions(url, sel, arraytext) {
   } catch (e) {
     console.log("Cannot parse : " + arraytext);
   }
+  updateStatus();
+}
+function onRequestDone(req, onsuccess, onfail) {
+  if (req.readyState !== XMLHttpRequest.DONE)
+    return;
+  if (req.status === 200 || req.status === 201) {
+    onsuccess();
+  } else if (onfail) {
+    onfail();
+  } else {
+    console.log(`Error ${req.status} (${req.responseURL})`);
+  }
 }
 function sendRequest(url, sel) {
-  var httpRequest = new XMLHttpRequest();
-  httpRequest.onreadystatechange = () => {
-    if (httpRequest.readyState === XMLHttpRequest.DONE) {
-      if (httpRequest.status === 200) {
-        addOptions(url, sel, httpRequest.responseText);
-      } else {
-        console.log("Error " + httpRequest.status + "(" + url + ")");
-      }
-    }
-  };
-  httpRequest.open("GET", url);
-  httpRequest.send();
+  var req = new XMLHttpRequest();
+  req.onreadystatechange = () => {
+    onRequestDone(req, () => addOptions(url, sel, req.responseText));
+  }
+  req.open("GET", url);
+  req.send();
 }
+
 
 // ------------ Drop from outside ------------
 function dropFile(file, parentpath) {
@@ -119,31 +153,30 @@ function dropFile(file, parentpath) {
   dropHere.style.display = "none";
   inFiles.style.display = "block";
   const inOpt = addOption(inFiles, url, url + " (converting...)", "");
-  inTotal++; updateInfo();
+  inTotal++; updateStatus();
 
   file.arrayBuffer().then((buf) => {
-    var httpRequest = new XMLHttpRequest();
-    httpRequest.onreadystatechange = () => {
-      if (httpRequest.readyState === XMLHttpRequest.DONE) {
-        inDone++; updateInfo();
-        if (httpRequest.status === 201) {
-          console.log("Created : " + httpRequest.responseText);
-          inOpt.text = url + " (converted)";
-          inOpt.className = "text_succeed";
-          var name = httpRequest.responseText;
-          if (name.indexOf(baseurl) == 0) {
-            name = name.substr(baseurl.length); // remove "cwebp/" from the beginning
-          }
-          onFileConverted(name, httpRequest.responseText);
-        } else {
-          console.log("Error " + httpRequest.status + "(" + url + ")");
-          inOpt.text = url + " (error)";
-          inOpt.className = "text_error";
+    var req = new XMLHttpRequest();
+    req.onreadystatechange = () => {
+      onRequestDone(req, () => {
+        console.log("Created : " + req.responseText);
+        inOpt.text = url + " (converted)";
+        inOpt.className = "text_succeed";
+        var name = req.responseText;
+        if (name.indexOf(baseurl) == 0) {
+          name = name.substr(baseurl.length); // remove "cwebp/" from the beginning
         }
-      }
+        addOption(outFiles, name, name, url);
+        inDone++; updateStatus();
+      }, () => {
+        console.log("Error " + req.status + "(" + url + ")");
+        inOpt.text = url + " (error)";
+        inOpt.className = "text_error";
+        inDone++; updateStatus();
+      });
     };
-    httpRequest.open("POST", baseurl + url);
-    httpRequest.send(buf);
+    req.open("POST", baseurl + url);
+    req.send(buf);
   });
 }
 
@@ -209,7 +242,7 @@ function setupDrop(elem) {
             );
           }
         } else {
-          console.log("Type [" + item.type + "] " + item.getAsFile().name);
+          console.log(`Type "${item.type}" ${item.getAsFile().name}`);
         }
       } else {
         // URL link (TODO : check image link)
@@ -226,31 +259,44 @@ function setupDrop(elem) {
 setupDrop(inFiles);
 setupDrop(dropHere);
 
+
 // ------------ Select/Unselect ------------
-const selAll = document.getElementById("selAll");
-selAll.addEventListener("click", () => {
-  if (selAll.innerHTML == "Select All") {
-    for (opt of outFiles) opt.selected = true;
-    selAll.innerHTML = "Deselect All";
+function selectUnselectAll(btn, sel) {
+  if (btn.innerHTML == "Select All") {
+    for (opt of sel) opt.selected = true;
   } else {
-    for (opt of outFiles) opt.selected = false;
-    selAll.innerHTML = "Select All";
+    for (opt of sel) opt.selected = false;
   }
-});
+  updateStatus();
+}
+outSelAll.addEventListener("click", () => selectUnselectAll(outSelAll, outFiles));
+muxSelAll.addEventListener("click", () => selectUnselectAll(muxSelAll, muxFiles));
+
 
 // ------------ Download ------------
-function getDownloadURL(options) {
+function getDownloadURL(options, sourcedir) {
   if (options.length == 1) return options[0].value;
-  // TODO : make zip-command
-  /*for (const opt of options) {
-    console.log(`Select : ${opt.value}`);
+  
+  // multi-files
+  var array = [];
+  for (const opt of options) {
+      array.push(opt.value);
   }
-  url = ...zip;*/
-  return "ToBeDone.zip";
+  // reserve to tar
+  const tardir = "tar";
+  const url = tardir + "/" + sourcedir + ".tar";
+  const body = JSON.stringify(array);
+  const req = new XMLHttpRequest();
+  req.onreadystatechange = () => {
+    onRequestDone(req, () => console.log(`Registered : ${url}`));
+  }
+  req.open("POST", url);
+  req.send(body);
+  return url;
 }
-function downloadFiles(options) {
+function downloadFiles(options, sourcedir) {
   if (options.length < 1) return;
-  const url = getDownloadURL(options);
+  const url = getDownloadURL(options, sourcedir);
   const name = url.split('/').pop();
   
   console.log(`download : ${url} (${name})`);
@@ -262,50 +308,130 @@ function downloadFiles(options) {
   elem.click();
   document.body.removeChild(elem);
 }
-outFiles.addEventListener("dblclick", () => {
-  downloadFiles(outFiles.selectedOptions);
-});
-document.getElementById("dnSel").addEventListener("click", () => {
-  downloadFiles(outFiles.selectedOptions);
-});
-document.getElementById("dnDrag").addEventListener("dragstart", (e) => {
-  if (outFiles.selectedOptions.length < 1) return;
-  const url = window.location + getDownloadURL(outFiles.selectedOptions);
+function downloadDragStart(e, options, sourcedir) {
+  if (options.length < 1) return;
+  const url = window.location + getDownloadURL(options, sourcedir);
   const name = url.split('/').pop();
 
   console.log(`application/octet-stream:${name}:${url}`);
   e.dataTransfer.setData("DownloadURL", [`application/octet-stream:${name}:${url}`]);
-});
+}
+outFiles.addEventListener("dblclick", () => downloadFiles(outFiles.selectedOptions, dirOutFiles));
+outDnSel.addEventListener("click", () => downloadFiles(outFiles.selectedOptions, dirOutFiles));
+outDnDrag.addEventListener("dragstart", (e) => downloadDragStart(e, outFiles.selectedOptions, dirOutFiles));
+muxFiles.addEventListener("dblclick", () => downloadFiles(muxFiles.selectedOptions, dirMuxFiles));
+muxDnSel.addEventListener("click", () => downloadFiles(muxFiles.selectedOptions, dirMuxFiles));
+muxDnDrag.addEventListener("dragstart", (e) => downloadDragStart(e, outFiles.selectedOptions, dirMuxFiles));
+
 
 // ------------ Remove ------------
 function removeFiles(options) {
   for (const opt of options) {
     const url = opt.value;
-    const httpRequest = new XMLHttpRequest();
-    httpRequest.onreadystatechange = () => {
-      if (httpRequest.readyState === XMLHttpRequest.DONE) {
-        if (httpRequest.status === 200) {
-          console.log(`Removed : ${url}`);
-        } else {
-          console.log(`Remove Error(${httpRequest.status}) : ${url}`);
-        }
-        sel = opt.parentElement;
-        if (sel) sel.remove(opt.index);
-      }
+    const req = new XMLHttpRequest();
+    req.onreadystatechange = () => {
+      onRequestDone(req,
+        () => console.log(`Removed : ${url}`),
+        () => console.log(`Remove Error(${req.status}) : ${url}`)
+      );
     };
-    httpRequest.open("DELETE", url);
-    httpRequest.send();
+    req.open("DELETE", url);
+    req.send();
+    opt.parentElement.remove(opt.index);
+  }
+  updateStatus();
+}
+function removeSelect(sel) {
+  const count = sel.selectedOptions.length;
+  if (confirm(`Remove ${count} files?`)) {
+    removeFiles(sel.selectedOptions);
   }
 }
-document.getElementById("rmSel").addEventListener("click", () => {
-  // TODO : check
-  removeFiles(outFiles.selectedOptions);
-});
-document.getElementById("rmAll").addEventListener("click", () => {
-  // TODO : check
-  removeFiles(outFiles.options);
-});
-// TODO : 'del" key
+function removeAll(sel) {
+  const count = sel.length;
+  if (confirm(`Remove ${count} files?`)) {
+    removeFiles(sel.options);
+  }
+}
+outRmSel.addEventListener("click", () => removeSelect(outFiles));
+outRmAll.addEventListener("click", () => removeAll(outFiles));
+muxRmSel.addEventListener("click", () => removeSelect(muxFiles));
+muxRmAll.addEventListener("click", () => removeAll(muxFiles));
+
+function onKeyDown(e) {
+  const KeyEvent = {
+    DOM_VK_LEFT: 37,
+    DOM_VK_UP: 38,
+    DOM_VK_RIGHT: 39,
+    DOM_VK_DOWN: 40,
+    DOM_VK_PRINTSCREEN: 44,
+    DOM_VK_INSERT: 45,
+    DOM_VK_DELETE: 46
+  };
+  const code = e.keyCode;
+  const focused = document.activeElement;
+  if (focused == outFiles || focused == muxFiles) {
+    if (code == KeyEvent.DOM_VK_DELETE) {
+      removeFiles(focused.selectedOptions);
+    }
+  }
+}
+window.addEventListener('keydown', onKeyDown, false);
+
+
+// ------------ Make Animation ------------
+function makeAnimation() {
+  const options = outFiles.selectedOptions;
+  const frames = options.length;
+  if (options.length <= 1) return options[0].value;
+
+  // multi-files
+  const optFPS = document.getElementById("muxSelFPS").selectedOptions[0];
+  const optLoop = document.getElementById("muxSelLoop").selectedOptions[0];
+  if (!optFPS || !optLoop) {
+    console.log("Invalid option");
+    return;
+  }
+  const fps = Number(optFPS.value);
+  const loop = (optLoop.value == "infinite")? 0 : Number(optLoop.value);
+  var body_dic = {
+    option: {
+      fps: fps,
+      loop: loop,
+    },
+    files: []
+  };
+  for (const opt of options) {
+    body_dic.files.push(opt.value);
+  }
+
+  // post request
+  const url = dirMuxFiles;
+  const body = JSON.stringify(body_dic);
+  const req = new XMLHttpRequest();
+  //console.log(`URL:${url}\nBody:${body}`);
+  req.onreadystatechange = () => {
+    onRequestDone(req,
+      () => {
+        console.log(`Created : ${req.responseText}`);
+        const baseurl = dirMuxFiles + "/";
+        const url = req.responseText;
+        var name = url;
+        if (url.indexOf(baseurl) == 0) {
+          name = url.substr(baseurl.length); // remove "awebp/" from the beginning
+        }
+        var text = `${name} (fps:${fps} loop:${loop} frames:${frames})`;
+        addOption(muxFiles, name, text, url);
+        updateStatus();
+      },
+      () => console.log(`MakeAni Error(${req.status}) : ${url}`)
+    );
+  };
+  req.open("POST", url);
+  req.send(body);
+}
+makeAni.addEventListener("click", () => makeAnimation());
+
 
 // ------------ Start ------------
 window.addEventListener(

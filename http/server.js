@@ -19,7 +19,9 @@ if (platform == "win32") {
   console.error("Unknown OS? " + platform);
 }
 const tempdir = "temp";
-const cwebpdir = "cwebp";
+const starthtml = "converter.html";
+const tardir = path.sep + "tar";
+const anidir = path.sep + "awebp";
 
 function getContentType(ext) {
   const table = {
@@ -49,8 +51,17 @@ function getContentType(ext) {
 }
 
 function sendNotFound(res, filepath) {
-  console.log("Not found : " + filepath);
+  console.error("Not found : " + filepath);
   res.writeHead(404);
+  res.end();
+}
+
+function sendCreated(res, dir, file) {
+  var url = path.join(dir, file)
+    .replace(/\\/gi, "/")
+    .replace(new RegExp("^[/]+"), "");
+  res.writeHead(201); // created
+  res.write(url);
   res.end();
 }
 
@@ -108,7 +119,7 @@ function sendFile(res, subdir, file) {
     "Content-Length": stat.size,
   });
   var readStream = fs.createReadStream(filepath);
-  readStream.pipe(res);
+  return readStream.pipe(res);
 }
 
 function receiveFile(res, dir, file, req, done_cb) {
@@ -130,7 +141,7 @@ function receiveFile(res, dir, file, req, done_cb) {
       }
     })
     .on("error", (e) => {
-      console.log("WriteFile Error :" + e);
+      console.error("WriteFile Error :" + e);
       res.writeHead(500); // internal server error
       res.end();
     });
@@ -143,11 +154,11 @@ function deleteFile(res, dir, file) {
     if (err) {
       console.error("Delete error : " + err);
       res.writeHead(500); // internal server error
-      res.end();
-      return;
+    } else {
+      console.log("Delete done");
+      res.writeHead(200);
     }
-    console.error("Delete done");
-    res.writeHead(200);
+    res.end();
   });
 }
 
@@ -162,65 +173,219 @@ function convertFileWebP(res, dir, file, from) {
   console.log("From : " + from + " To : " + to);
 
   const binpath = path.join(osdir, "cwebp");
-  /*
-  const cwebp = child_process.spawn(binpath, ["-lossless", from, "-o", to]);
-  cwebp.stderr.on("data", (data) => {
-    console.error("" + data);
-  });
-  cwebp.on("close", (code) => {
-    const i = new Int32Array([code])[0];
-    console.log("close " + i);
-    if (i == 0) {
-      var url = path.join(dir, tofile).replace(/\\/gi, "/");
-      res.writeHead(201); // created
-      res.write(url);
-      res.end();
-    } else {
-      res.writeHead(500); // internal server error
-      res.end();
-    }
-    */
-  const command = '"' + binpath + '" -lossless "' + from + '" -o "' + to + '"';
-  console.error(`command: ${command}`);
-  const cwebp = child_process.exec(command, (error, stdout, stderr) => {
+  const command = `"${binpath}" -lossless "${from}" -o "${to}"`;
+  console.log(`command: ${command}`);
+  child_process.exec(command, (error, stdout, stderr) => {
+    console.log(`stdout: ${stdout}`);
+    console.error(`stderr: ${stderr}`);
     if (error) {
       console.error(`exec error: ${error}`);
       res.writeHead(500); // internal server error
       res.end();
     } else {
-      console.log(`stdout: ${stdout}`);
-      console.error(`stderr: ${stderr}`);
-      var url = path.join(dir, tofile)
-        .replace(/\\/gi, "/")
-        .replace(new RegExp("^[/]+"), "");
-      res.writeHead(201); // created
-      res.write(url);
-      res.end();
+      sendCreated(res, dir, tofile);
     }
+    fs.unlink(from, (e) => {e && console.log("Unlink Error" + e);});
+  });
+}
 
-    console.log("Remove : " + from);
-    fs.unlink(from, (e) => {
-      if (e) {
-        console.log("Unlink Error" + e);
-      }
+function receiveJSON(req, done_cb) {
+  let body = [];
+  req.on("data", (chunk)=>{
+     body.push(chunk);
+  }).on("end", ()=>{
+    let json;
+    try {
+      json = JSON.parse(body);
+    } catch(e) {
+      console.log("Warning : error on parsing " + body);
+      res.writeHead(400); // wrong req
+      res.end();
+      return;
+    }
+    done_cb(json);
+  });
+}
+
+const tarmap = new Map();
+function registerTar(res, filename, array) {
+  tarmap.set(filename, array);
+  console.log(`Tar registered : "${filename}" ${array.length} files`);
+  sendCreated(res, tardir, filename);
+}
+function sendTar(res, filename) {
+  // get list
+  const array = tarmap.get(filename);
+  if (!array) {
+    sendNotFound(res, path.join(tardir, filename));
+    return;
+  }
+  console.log(`Tar send : "${filename}" ${array.length} files`);
+
+  // check temp directory
+  const temppath = path.join(__dirname, tempdir);
+  if (!fs.existsSync(temppath)) {
+    console.log("mkdir : " + temppath);
+    fs.mkdirSync(temppath, { recursive: true });
+  }
+
+  // define command
+  let filepath = path.join(temppath, filename);
+  command = `tar --format ustar -cf "${filepath}" -C "${__dirname}"`;
+  for (const file of array) { // TODO : exceed number...
+    command += ` "${file}"`;
+  }
+  console.log(`Tar command : "${command}"`);
+
+  // tar
+  child_process.exec(command, (error, stdout, stderr) => {
+    if (error) {
+      console.error(`exec error: ${error}`);
+      res.writeHead(500); // internal server error
+      res.end();
+      return;
+    }
+    console.log(`stdout: ${stdout}`);
+    console.error(`stderr: ${stderr}`);
+    sendFile(res, tempdir, filename).on("finish", ()=>{
+      console.log("Remove : " + filepath);
+      fs.unlink(filepath, (e) => {e && console.log("Unlink Error" + e);});
     });
   });
 }
+
+function getCommonName(files) {
+  var common_dir = "";
+  var common_name = "";
+  var dir, name, same;
+  var init = true;
+  for (file of files) {
+    dir = path.dirname(file).split("/").pop();
+    name = path.basename(file, path.extname(file));
+    if (init) {
+      init = false;
+      common_dir = dir;
+      common_name = name;
+      continue;
+    }
+    for (same = 0; same < dir.length && same < common_dir.length && dir[same] == common_dir[same]; same++);
+    common_dir = common_dir.substr(0, same);
+    for (same = 0; same < name.length && same < common_name.length && name[same] == common_name[same]; same++);
+    common_name = common_name.substr(0, same);
+  }
+  console.log(`CommonName : dir "${common_dir}"  file "${common_name}"`);
+  if (common_dir.length > 0)
+    return common_dir;
+  if (common_name.length > 0)
+    return common_name;
+  return "noname";
+}
+
+function makeAnimatedWebP(res, info) {
+  // refine options
+  const fps = info.option.fps;
+  const loop = info.option.loop;
+  const files = info.files;
+  if (fps < 1) {
+    console.log(`Invalid FPS ${fps}. Set default 30`);
+    fps = 30;
+  }
+  if (loop < 0) {
+    console.log(`Invalid loop ${loop}. Set default 0`);
+    loop = 0;
+  }
+  if (files.length < 2) {
+    console.error(`Files(${files.length}) must be more than 2.`);
+    res.writeHead(400);
+    res.end();
+    return;
+  }
+
+  // get common name
+  const common = getCommonName(files);
+  if (!common || common == "") {
+    console.error("No common name found");
+    res.writeHead(400); // internal server error
+    res.end();
+    return;
+  }
+
+  // dir check
+  const argdir = path.join(__dirname, tempdir);
+  if (!fs.existsSync(argdir)) {
+    console.log("mkdir : " + argdir);
+    fs.mkdirSync(argdir, { recursive: true });
+  }
+  const todir = path.join(__dirname, anidir);
+  if (!fs.existsSync(todir)) {
+    console.log("mkdir : " + todir);
+    fs.mkdirSync(todir, { recursive: true });
+  }
+
+  // set argument file
+  const argfile = path.join(argdir, common + ".arg" );
+  const tofile = path.join(todir, common + ".webp");
+
+  var arg = `-o ${tofile} -loop ${loop}\n`;
+  var currtime = 0, nexttime = 0, duration;
+  for (var i = 0; i < files.length; i++) {
+    currtime = nexttime;
+    nexttime = Math.round((i + 1) * 1000 / fps);
+    duration = nexttime - currtime;
+    const file = path.join(__dirname, files[i]);
+    arg += ` -frame ${file} +${duration}+0+0+1+b\n`;
+  }
+  fs.writeFile(argfile, arg, (err) => {
+    if (err) {
+      console.log(`File write fail : ${err}`);
+      res.writeHead(500); // internal server error
+      res.end();
+      return;
+    }
+
+    // mux
+    const binpath = path.join(osdir, "webpmux");
+    const command = `"${binpath}" "${argfile}"`;
+    console.log(`command: ${command}`);
+    child_process.exec(command, (error, stdout, stderr) => {
+      console.log(`stdout: ${stdout}`);
+      console.error(`stderr: ${stderr}`);
+      if (error) {
+        console.error(`exec error: ${error}`);
+        res.writeHead(500); // internal server error
+        res.end();
+      } else {
+        sendCreated(res, anidir, common + ".webp");
+      }
+      fs.unlink(argfile, (e) => {e && console.log("Unlink Error" + e);});
+    });
+  });
+}
+
 
 function msgDispatch(req, res) {
   const addr = url.parse(req.url, true);
   const target = path.normalize(decodeURI(addr.path));
   var dirname = path.dirname(target);
   var filename = path.basename(target);
-  //console.log("Method : " + req.method);
-  console.log("Path : [" + dirname + "][" + filename + "]");
+  console.log(`${req.method} "${dirname}" "${filename}"`);
   if (req.method == "GET") {
     if (filename == "") {
-      filename = "converter.html";
+      filename = starthtml;
     }
-    sendFile(res, dirname, filename);
+    if (dirname == tardir) {
+      sendTar(res, filename);
+    } else {
+      sendFile(res, dirname, filename);
+    }
   } else if (req.method == "POST") {
-    receiveFile(res, dirname, filename, req, convertFileWebP);
+    if (dirname == tardir) {
+      receiveJSON(req, (json)=>registerTar(res, filename, json));
+    } else if (target == anidir) {
+      receiveJSON(req, (json)=>makeAnimatedWebP(res, json));
+    } else {
+      receiveFile(res, dirname, filename, req, convertFileWebP);
+    }
   } else if (req.method == "DELETE") {
     deleteFile(res, dirname, filename);
   }
