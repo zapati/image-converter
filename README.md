@@ -12,7 +12,7 @@ This is a server-client app. So we need to
 
 Download all contents here.<br/>
 Execute `RUNME_win.bat` on Windows PC.<br/>
-Execute `RUNME_mac.sh.command` on Mac.
+Command `node http/server.js` on Linux PC/Server. (Install `node` and `webp` before run)
 
 ### Connect server
 
