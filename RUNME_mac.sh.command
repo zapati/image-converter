@@ -1,1 +1,0 @@
-#!/bin/shmac\node http\server.js

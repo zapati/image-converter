@@ -15,7 +15,6 @@ var inTotal = 0;
 var dirOutFiles = "cwebp";
 var dirMuxFiles = "awebp";
 
-
 // ------------ Conversion Type ------------
 selType.addEventListener("change", () => {
   // clear
@@ -34,7 +33,7 @@ selType.addEventListener("change", () => {
   }
 
   // set option
-  switch(selType.options[selType.selectedIndex].value) {
+  switch (selType.options[selType.selectedIndex].value) {
     case "WebP":
       dirOutFiles = "cwebp";
       break;
@@ -52,7 +51,6 @@ selType.addEventListener("change", () => {
   sendRequest(dirMuxFiles, muxFiles);
 });
 
-
 // ------------ Info and buttons ------------
 const outSelAll = document.getElementById("outSelAll");
 const outDnSel = document.getElementById("outDnSel");
@@ -68,37 +66,53 @@ function updateStatus() {
 
   const out_count = outFiles.selectedOptions.length;
   const out_total = outFiles.length;
-  outSelAll.innerHTML = (out_count == out_total)? "Deselect All" : "Select All";
-  outSelAll.disabled = (out_total < 1);
-  outDnSel.disabled = (out_count < 1);
+  outSelAll.innerHTML = out_count == out_total ? "Deselect All" : "Select All";
+  outSelAll.disabled = out_total < 1;
+  outDnSel.disabled = out_count < 1;
   outSelInfo.innerHTML = `Sel:${out_count}/${out_total}`;
-  outRmSel.disabled = (out_count < 1);
-  outRmAll.disabled = (out_total < 1);
-  outDnDrag.className = (out_count < 1)? "dragdownload off" : "dragdownload";
-  outDnDrag.disabled = (out_count < 1);
+  outRmSel.disabled = out_count < 1;
+  outRmAll.disabled = out_total < 1;
+  outDnDrag.className = out_count < 1 ? "dragdownload off" : "dragdownload";
+  outDnDrag.disabled = out_count < 1;
 
-  makeAni.disabled = (out_count < 2);
+  makeAni.disabled = out_count < 2;
 
   const mux_count = muxFiles.selectedOptions.length;
   const mux_total = muxFiles.length;
-  muxSelAll.innerHTML = (mux_count == mux_total)? "Deselect All" : "Select All";
-  muxSelAll.disabled = (mux_total < 1);
-  muxDnSel.disabled = (mux_count < 1);
+  muxSelAll.innerHTML = mux_count == mux_total ? "Deselect All" : "Select All";
+  muxSelAll.disabled = mux_total < 1;
+  muxDnSel.disabled = mux_count < 1;
   muxSelInfo.innerHTML = `Sel:${mux_count}/${mux_total}`;
-  muxRmSel.disabled = (mux_count < 1);
-  muxRmAll.disabled = (mux_total < 1);
-  muxDnDrag.className = (mux_count < 1)? "dragdownload off" : "dragdownload";
-  muxDnDrag.disabled = (mux_count < 1);  
+  muxRmSel.disabled = mux_count < 1;
+  muxRmAll.disabled = mux_total < 1;
+  muxDnDrag.className = mux_count < 1 ? "dragdownload off" : "dragdownload";
+  muxDnDrag.disabled = mux_count < 1;
 }
-outFiles.addEventListener("change", () => {updateStatus()});
-muxFiles.addEventListener("change", () => {updateStatus()});
-
+outFiles.addEventListener("change", () => {
+  updateStatus();
+});
+muxFiles.addEventListener("change", () => {
+  updateStatus();
+});
 
 // ------------ Request list ------------
+function compareFilePath(a, b) {
+  for (var i = 0; i < a.length && i < b.length; i++) {
+    if (a[i] >= "0" && a[i] <= "9" && b[i] >= "0" && b[i] <= "9") {
+      const anum = parseInt(a.substr(i));
+      const bnum = parseInt(b.substr(i));
+      if (anum != bnum) return anum - bnum;
+    }
+    if (a[i] != b[i]) return a[i] - b[i];
+  }
+  return a.length - b.length;
+}
 function addOption(sel, id, text, value) {
   const exist = sel.options[id];
   if (exist) {
     console.log(`Exist : ${id} ${exist.value} - ${value}`);
+    exist.text = text;
+    exist.value = value;
     return exist;
   }
   var opt = document.createElement("option");
@@ -106,15 +120,14 @@ function addOption(sel, id, text, value) {
   opt.text = text;
   opt.value = value;
   opt.className = "text_normal";
-  if (sel.draggable) {
-    setupDrag(opt);
-  }
   sel.add(opt);
+  opt.scrollIntoView();
   return opt;
 }
 function addOptions(url, sel, arraytext) {
   try {
     const array = JSON.parse(arraytext);
+    array.sort(compareFilePath);
     array.forEach((name) => {
       addOption(sel, name, name, url + "/" + name);
     });
@@ -124,8 +137,7 @@ function addOptions(url, sel, arraytext) {
   updateStatus();
 }
 function onRequestDone(req, onsuccess, onfail) {
-  if (req.readyState !== XMLHttpRequest.DONE)
-    return;
+  if (req.readyState !== XMLHttpRequest.DONE) return;
   if (req.status === 200 || req.status === 201) {
     onsuccess();
   } else if (onfail) {
@@ -138,11 +150,10 @@ function sendRequest(url, sel) {
   var req = new XMLHttpRequest();
   req.onreadystatechange = () => {
     onRequestDone(req, () => addOptions(url, sel, req.responseText));
-  }
+  };
   req.open("GET", url);
   req.send();
 }
-
 
 // ------------ Drop from outside ------------
 function dropFile(file, parentpath) {
@@ -153,27 +164,34 @@ function dropFile(file, parentpath) {
   dropHere.style.display = "none";
   inFiles.style.display = "block";
   const inOpt = addOption(inFiles, url, url + " (converting...)", "");
-  inTotal++; updateStatus();
+  inTotal++;
+  updateStatus();
 
   file.arrayBuffer().then((buf) => {
     var req = new XMLHttpRequest();
     req.onreadystatechange = () => {
-      onRequestDone(req, () => {
-        console.log("Created : " + req.responseText);
-        inOpt.text = url + " (converted)";
-        inOpt.className = "text_succeed";
-        var name = req.responseText;
-        if (name.indexOf(baseurl) == 0) {
-          name = name.substr(baseurl.length); // remove "cwebp/" from the beginning
+      onRequestDone(
+        req,
+        () => {
+          console.log("Created : " + req.responseText);
+          inOpt.text = url + " (converted)";
+          inOpt.className = "text_succeed";
+          var name = req.responseText;
+          if (name.indexOf(baseurl) == 0) {
+            name = name.substr(baseurl.length); // remove "cwebp/" from the beginning
+          }
+          addOption(outFiles, name, name, req.responseText);
+          inDone++;
+          updateStatus();
+        },
+        () => {
+          console.log("Error " + req.status + "(" + url + ")");
+          inOpt.text = url + " (error)";
+          inOpt.className = "text_error";
+          inDone++;
+          updateStatus();
         }
-        addOption(outFiles, name, name, url);
-        inDone++; updateStatus();
-      }, () => {
-        console.log("Error " + req.status + "(" + url + ")");
-        inOpt.text = url + " (error)";
-        inOpt.className = "text_error";
-        inDone++; updateStatus();
-      });
+      );
     };
     req.open("POST", baseurl + url);
     req.send(buf);
@@ -249,8 +267,7 @@ function setupDrop(elem) {
         const data = e.dataTransfer.getData("Text");
         const name = data.substring(data.lastIndexOf("/") + 1);
         console.log("Html : " + data);
-        addOption(selImage, name, data);
-        selectImage(-1);
+        addOption(inFiles, name, name + " (converting...)", data);
         return; // should we?
       }
     }
@@ -258,7 +275,6 @@ function setupDrop(elem) {
 }
 setupDrop(inFiles);
 setupDrop(dropHere);
-
 
 // ------------ Select/Unselect ------------
 function selectUnselectAll(btn, sel) {
@@ -269,18 +285,21 @@ function selectUnselectAll(btn, sel) {
   }
   updateStatus();
 }
-outSelAll.addEventListener("click", () => selectUnselectAll(outSelAll, outFiles));
-muxSelAll.addEventListener("click", () => selectUnselectAll(muxSelAll, muxFiles));
-
+outSelAll.addEventListener("click", () =>
+  selectUnselectAll(outSelAll, outFiles)
+);
+muxSelAll.addEventListener("click", () =>
+  selectUnselectAll(muxSelAll, muxFiles)
+);
 
 // ------------ Download ------------
 function getDownloadURL(options, sourcedir) {
   if (options.length == 1) return options[0].value;
-  
+
   // multi-files
   var array = [];
   for (const opt of options) {
-      array.push(opt.value);
+    array.push(opt.value);
   }
   // reserve to tar
   const tardir = "tar";
@@ -289,7 +308,7 @@ function getDownloadURL(options, sourcedir) {
   const req = new XMLHttpRequest();
   req.onreadystatechange = () => {
     onRequestDone(req, () => console.log(`Registered : ${url}`));
-  }
+  };
   req.open("POST", url);
   req.send(body);
   return url;
@@ -297,13 +316,13 @@ function getDownloadURL(options, sourcedir) {
 function downloadFiles(options, sourcedir) {
   if (options.length < 1) return;
   const url = getDownloadURL(options, sourcedir);
-  const name = url.split('/').pop();
-  
+  const name = url.split("/").pop();
+
   console.log(`download : ${url} (${name})`);
-  const elem = document.createElement('a');
-  elem.setAttribute('href', url);
-  elem.setAttribute('download', name);
-  elem.style.display = 'none';
+  const elem = document.createElement("a");
+  elem.setAttribute("href", url);
+  elem.setAttribute("download", name);
+  elem.style.display = "none";
   document.body.appendChild(elem);
   elem.click();
   document.body.removeChild(elem);
@@ -311,26 +330,41 @@ function downloadFiles(options, sourcedir) {
 function downloadDragStart(e, options, sourcedir) {
   if (options.length < 1) return;
   const url = window.location + getDownloadURL(options, sourcedir);
-  const name = url.split('/').pop();
+  const name = url.split("/").pop();
 
   console.log(`application/octet-stream:${name}:${url}`);
-  e.dataTransfer.setData("DownloadURL", [`application/octet-stream:${name}:${url}`]);
+  e.dataTransfer.setData("DownloadURL", [
+    `application/octet-stream:${name}:${url}`,
+  ]);
 }
-outFiles.addEventListener("dblclick", () => downloadFiles(outFiles.selectedOptions, dirOutFiles));
-outDnSel.addEventListener("click", () => downloadFiles(outFiles.selectedOptions, dirOutFiles));
-outDnDrag.addEventListener("dragstart", (e) => downloadDragStart(e, outFiles.selectedOptions, dirOutFiles));
-muxFiles.addEventListener("dblclick", () => downloadFiles(muxFiles.selectedOptions, dirMuxFiles));
-muxDnSel.addEventListener("click", () => downloadFiles(muxFiles.selectedOptions, dirMuxFiles));
-muxDnDrag.addEventListener("dragstart", (e) => downloadDragStart(e, muxFiles.selectedOptions, dirMuxFiles));
-
+outFiles.addEventListener("dblclick", () =>
+  downloadFiles(outFiles.selectedOptions, dirOutFiles)
+);
+outDnSel.addEventListener("click", () =>
+  downloadFiles(outFiles.selectedOptions, dirOutFiles)
+);
+outDnDrag.addEventListener("dragstart", (e) =>
+  downloadDragStart(e, outFiles.selectedOptions, dirOutFiles)
+);
+muxFiles.addEventListener("dblclick", () =>
+  downloadFiles(muxFiles.selectedOptions, dirMuxFiles)
+);
+muxDnSel.addEventListener("click", () =>
+  downloadFiles(muxFiles.selectedOptions, dirMuxFiles)
+);
+muxDnDrag.addEventListener("dragstart", (e) =>
+  downloadDragStart(e, muxFiles.selectedOptions, dirMuxFiles)
+);
 
 // ------------ Remove ------------
 function removeFiles(options) {
-  for (const opt of options) {
+  while (options.length) {
+    const opt = options[0];
     const url = opt.value;
     const req = new XMLHttpRequest();
     req.onreadystatechange = () => {
-      onRequestDone(req,
+      onRequestDone(
+        req,
         () => console.log(`Removed : ${url}`),
         () => console.log(`Remove Error(${req.status}) : ${url}`)
       );
@@ -366,7 +400,7 @@ function onKeyDown(e) {
     DOM_VK_DOWN: 40,
     DOM_VK_PRINTSCREEN: 44,
     DOM_VK_INSERT: 45,
-    DOM_VK_DELETE: 46
+    DOM_VK_DELETE: 46,
   };
   const code = e.keyCode;
   const focused = document.activeElement;
@@ -376,8 +410,7 @@ function onKeyDown(e) {
     }
   }
 }
-window.addEventListener('keydown', onKeyDown, false);
-
+window.addEventListener("keydown", onKeyDown, false);
 
 // ------------ Make Animation ------------
 function makeAnimation() {
@@ -393,17 +426,21 @@ function makeAnimation() {
     return;
   }
   const fps = Number(optFPS.value);
-  const loop = (optLoop.value == "infinite")? 0 : Number(optLoop.value);
+  const loop = optLoop.value == "infinite" ? 0 : Number(optLoop.value);
   var body_dic = {
     option: {
       fps: fps,
       loop: loop,
     },
-    files: []
+    files: [],
   };
   for (const opt of options) {
     body_dic.files.push(opt.value);
   }
+  body_dic.files.sort(compareFilePath);
+
+  // wait
+  makeAni.disabled = true;
 
   // post request
   const url = dirMuxFiles;
@@ -411,7 +448,8 @@ function makeAnimation() {
   const req = new XMLHttpRequest();
   //console.log(`URL:${url}\nBody:${body}`);
   req.onreadystatechange = () => {
-    onRequestDone(req,
+    onRequestDone(
+      req,
       () => {
         console.log(`Created : ${req.responseText}`);
         const baseurl = dirMuxFiles + "/";
@@ -424,14 +462,16 @@ function makeAnimation() {
         addOption(muxFiles, name, text, url);
         updateStatus();
       },
-      () => console.log(`MakeAni Error(${req.status}) : ${url}`)
+      () => {
+        console.log(`MakeAni Error(${req.status}) : ${url}`);
+        updateStatus();
+      }
     );
   };
   req.open("POST", url);
   req.send(body);
 }
 makeAni.addEventListener("click", () => makeAnimation());
-
 
 // ------------ Start ------------
 window.addEventListener(

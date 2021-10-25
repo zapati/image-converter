@@ -57,7 +57,7 @@
       .text_normal {
         color: black;
       }
-   </style>
+    </style>
   </head>
   <body class="homepage" id="None">
     <div style="float: right">
@@ -72,23 +72,32 @@
       </select>
     </div>
     <hr />
-    <div class="halfbox" style="float:left;">
+    <div class="halfbox" style="float: left">
       <div id="inBox" class="roundbox">
         <div id="inInfo" class="infotext">Input Files</div>
-        <div id="dropHere" class="fileselect guide">Drop files or folder here</div>
-        <select id="inFiles" class="fileselect" multiple style="display:none"></select>
+        <div id="dropHere" class="fileselect guide">
+          Drop files or folder here
+        </div>
+        <select
+          id="inFiles"
+          class="fileselect"
+          multiple
+          style="display: none"
+        ></select>
       </div>
     </div>
-    <div class="halfbox" style="float:right;">
+    <div class="halfbox" style="float: right">
       <div id="outBox" class="roundbox">
         <div id="outInfo" class="infotext">Converted Images</div>
         <select id="outFiles" class="fileselect short" multiple></select>
         <button id="outSelAll">Select All</button>
         <button id="outDnSel">Download</button>
-        <div id="outSelInfo" style="display:inline">Sel:0/0</div>
+        <div id="outSelInfo" style="display: inline">Sel:0/0</div>
         <button id="outRmSel">Remove</button>
         <button id="outRmAll">Remove All</button>
-        <div id="outDnDrag" class="dragdownload" draggable="true">DragThisToDownload</div>
+        <div id="outDnDrag" class="dragdownload" draggable="true">
+          DragThisToDownload
+        </div>
       </div>
       <p />
       <div id="muxBox" class="roundbox">
@@ -113,10 +122,12 @@
         <select id="muxFiles" class="fileselect shorter" multiple></select>
         <button id="muxSelAll">Select All</button>
         <button id="muxDnSel">Download</button>
-        <div id="muxSelInfo" style="display:inline">Sel:0/0</div>
+        <div id="muxSelInfo" style="display: inline">Sel:0/0</div>
         <button id="muxRmSel">Remove</button>
         <button id="muxRmAll">Remove All</button>
-        <div id="muxDnDrag" class="dragdownload" draggable="true">DragThisToDownload</div>
+        <div id="muxDnDrag" class="dragdownload" draggable="true">
+          DragThisToDownload
+        </div>
       </div>
     </div>
     <script src="converter.js"></script>

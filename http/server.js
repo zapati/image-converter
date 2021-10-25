@@ -57,7 +57,8 @@ function sendNotFound(res, filepath) {
 }
 
 function sendCreated(res, dir, file) {
-  var url = path.join(dir, file)
+  var url = path
+    .join(dir, file)
     .replace(/\\/gi, "/")
     .replace(new RegExp("^[/]+"), "");
   res.writeHead(201); // created
@@ -185,26 +186,30 @@ function convertFileWebP(res, dir, file, from) {
     } else {
       sendCreated(res, dir, tofile);
     }
-    fs.unlink(from, (e) => {e && console.log("Unlink Error" + e);});
+    fs.unlink(from, (e) => {
+      e && console.log("Unlink Error" + e);
+    });
   });
 }
 
-function receiveJSON(req, done_cb) {
-  let body = [];
-  req.on("data", (chunk)=>{
-     body.push(chunk);
-  }).on("end", ()=>{
-    let json;
-    try {
-      json = JSON.parse(body);
-    } catch(e) {
-      console.log("Warning : error on parsing " + body);
-      res.writeHead(400); // wrong req
-      res.end();
-      return;
-    }
-    done_cb(json);
-  });
+function receiveJSON(req, res, done_cb) {
+  let body = "";
+  req
+    .on("data", (chunk) => {
+      body += chunk;
+    })
+    .on("end", () => {
+      let json;
+      try {
+        json = JSON.parse(body);
+      } catch (e) {
+        console.log("Warning : error on parsing " + body);
+        res.writeHead(400); // wrong req
+        res.end();
+        return;
+      }
+      done_cb(res, json);
+    });
 }
 
 const tarmap = new Map();
@@ -232,7 +237,8 @@ function sendTar(res, filename) {
   // define command
   let filepath = path.join(temppath, filename);
   command = `tar --format ustar -cf "${filepath}" -C "${__dirname}"`;
-  for (const file of array) { // TODO : exceed number...
+  for (const file of array) {
+    // TODO : exceed number...
     command += ` "${file}"`;
   }
   console.log(`Tar command : "${command}"`);
@@ -247,9 +253,11 @@ function sendTar(res, filename) {
     }
     console.log(`stdout: ${stdout}`);
     console.error(`stderr: ${stderr}`);
-    sendFile(res, tempdir, filename).on("finish", ()=>{
+    sendFile(res, tempdir, filename).on("finish", () => {
       console.log("Remove : " + filepath);
-      fs.unlink(filepath, (e) => {e && console.log("Unlink Error" + e);});
+      fs.unlink(filepath, (e) => {
+        e && console.log("Unlink Error" + e);
+      });
     });
   });
 }
@@ -268,16 +276,26 @@ function getCommonName(files) {
       common_name = name;
       continue;
     }
-    for (same = 0; same < dir.length && same < common_dir.length && dir[same] == common_dir[same]; same++);
+    for (
+      same = 0;
+      same < dir.length &&
+      same < common_dir.length &&
+      dir[same] == common_dir[same];
+      same++
+    );
     common_dir = common_dir.substr(0, same);
-    for (same = 0; same < name.length && same < common_name.length && name[same] == common_name[same]; same++);
+    for (
+      same = 0;
+      same < name.length &&
+      same < common_name.length &&
+      name[same] == common_name[same];
+      same++
+    );
     common_name = common_name.substr(0, same);
   }
   console.log(`CommonName : dir "${common_dir}"  file "${common_name}"`);
-  if (common_dir.length > 0)
-    return common_dir;
-  if (common_name.length > 0)
-    return common_name;
+  if (common_dir.length > 0) return common_dir;
+  if (common_name.length > 0) return common_name;
   return "noname";
 }
 
@@ -323,17 +341,19 @@ function makeAnimatedWebP(res, info) {
   }
 
   // set argument file
-  const argfile = path.join(argdir, common + ".arg" );
+  const argfile = path.join(argdir, common + ".arg");
   const tofile = path.join(todir, common + ".webp");
 
   var arg = `-o ${tofile} -loop ${loop}\n`;
-  var currtime = 0, nexttime = 0, duration;
+  var currtime = 0,
+    nexttime = 0,
+    duration;
   for (var i = 0; i < files.length; i++) {
     currtime = nexttime;
-    nexttime = Math.round((i + 1) * 1000 / fps);
+    nexttime = Math.round(((i + 1) * 1000) / fps);
     duration = nexttime - currtime;
     const file = path.join(__dirname, files[i]);
-    arg += ` -frame ${file} +${duration}+0+0+1+b\n`;
+    arg += ` ${file} -d ${duration} -lossless -m 4\n`;
   }
   fs.writeFile(argfile, arg, (err) => {
     if (err) {
@@ -344,7 +364,7 @@ function makeAnimatedWebP(res, info) {
     }
 
     // mux
-    const binpath = path.join(osdir, "webpmux");
+    const binpath = path.join(osdir, "img2webp");
     const command = `"${binpath}" "${argfile}"`;
     console.log(`command: ${command}`);
     child_process.exec(command, (error, stdout, stderr) => {
@@ -357,11 +377,12 @@ function makeAnimatedWebP(res, info) {
       } else {
         sendCreated(res, anidir, common + ".webp");
       }
-      fs.unlink(argfile, (e) => {e && console.log("Unlink Error" + e);});
+      fs.unlink(argfile, (e) => {
+        e && console.log("Unlink Error" + e);
+      });
     });
   });
 }
-
 
 function msgDispatch(req, res) {
   const addr = url.parse(req.url, true);
@@ -380,9 +401,9 @@ function msgDispatch(req, res) {
     }
   } else if (req.method == "POST") {
     if (dirname == tardir) {
-      receiveJSON(req, (json)=>registerTar(res, filename, json));
+      receiveJSON(req, res, (res, json) => registerTar(res, filename, json));
     } else if (target == anidir) {
-      receiveJSON(req, (json)=>makeAnimatedWebP(res, json));
+      receiveJSON(req, res, (res, json) => makeAnimatedWebP(res, json));
     } else {
       receiveFile(res, dirname, filename, req, convertFileWebP);
     }
