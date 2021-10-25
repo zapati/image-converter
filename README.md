@@ -38,5 +38,5 @@ And you may `Reload Image` if you want to check loop-once animation.
 
 ------------------
 ### Contact developer
-If you have any issue or question or suggestion, please submit it freely at https://github.sec.samsung.net/zapati-ahn/image-testpage/issues
-Or email me to zapati.ahn@samsung.com
+If you have any issue or question or suggestion, please submit it freely at https://github.com/zapati/webp-testpage
+
