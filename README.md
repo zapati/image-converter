@@ -42,4 +42,4 @@ And you may `Reload Image` if you want to check loop-once animation.
 
 ### Contact developer
 
-If you have any issue or question or suggestion, please submit it freely at https://github.com/zapati/webp-testpage
+If you have any issue or question or suggestion, please submit it freely at https://github.com/zapati/image-converter
