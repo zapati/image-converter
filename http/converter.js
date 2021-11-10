@@ -167,7 +167,10 @@ function dropFile(file, parentpath) {
   inTotal++;
   updateStatus();
 
-  file.arrayBuffer().then((buf) => {
+  let fileReader = new FileReader();
+  fileReader.readAsArrayBuffer(file);
+  fileReader.onload = (e) => {
+    var buf = e.target.result;
     var req = new XMLHttpRequest();
     req.onreadystatechange = () => {
       onRequestDone(
@@ -195,7 +198,7 @@ function dropFile(file, parentpath) {
     };
     req.open("POST", baseurl + url);
     req.send(buf);
-  });
+  };
 }
 
 function dropDirectory(direntry, parentpath) {
